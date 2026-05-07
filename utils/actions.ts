@@ -4,7 +4,7 @@ import { imageSchema, profileScema, propertyScema, validateWithZodSchema } from 
 import db from "./db";
 import { redirect } from "next/navigation";
 import { uploadImage } from "./supabase";
-import { profile } from "console";
+import type { PropertyCardProps } from "./types";
 
 
 
@@ -237,28 +237,37 @@ export const toggleFavoritAction = async (prevState:{
     }
     return {message: favoriteId ? 'favorite removed' : 'favorite added'}
 }
-export const fetchFavoritesAction = async () => {
+export const fetchFavoritesAction = async (): Promise<
+    PropertyCardProps[]
+> => {
     const user = await getAuthUser();
 
-    if(user){
-       const favorites = await db.favorite.findMany({
-            where:{
-                profileId: user.id
-            },
-            select: {
-                property: {
-                    select: {
-                        id: true,
-                        name: true,
-                        tagline: true,
-                        price: true,
-                        country: true,
-                        image: true,
-                    }}}
-        })
-        return favorites.map((fav)=> fav.property);
+    if (!user) {
+        return [];
     }
-}
+
+    const favorites = await db.favorite.findMany({
+        where: {
+            profileId: user.id,
+        },
+        select: {
+            property: {
+                select: {
+                    id: true,
+                    name: true,
+                    tagline: true,
+                    price: true,
+                    country: true,
+                    image: true,
+                },
+            },
+        },
+    });
+
+    return favorites.map(
+        (fav: { property: PropertyCardProps }) => fav.property
+    );
+};
 export const fetchPropertyById = async ({id}:{id:string}) => {
     const property = await db.property.findUnique({
         where:{
